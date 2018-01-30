@@ -20,7 +20,8 @@ class RIP:
 if __name__ == '__main__':
     with open('log.log', "w") as f:  # replace filepath & filename
         with f as sys.stdout:
-            a = RIP(filepath=r"./test_data/Mesh_0113.rip")
+            a = RIP(filepath=r"./test_data/2018.01.26_01.22.20_WWE2K18_x64.exe/Mesh_0384.rip")
+            # a = RIP(filepath=r"./test_data/Mesh_0113.rip")
             a.read()
             for vertex in a.header.vertexes:
                 pprint(vertex.__dict__)

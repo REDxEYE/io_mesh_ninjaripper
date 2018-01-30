@@ -49,6 +49,10 @@ class ByteIO:
             if 'w' in getattr(self.file, 'mode'):
                 self.file.close()
 
+    @property
+    def possition(self):
+        return self.tell()
+
     def rewind(self, amount):
         self.file.seek(-amount, io.SEEK_CUR)
 

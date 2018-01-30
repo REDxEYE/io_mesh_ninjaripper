@@ -54,12 +54,14 @@ class IO_RIP:
 
     def create_mesh(self):
         verts, uvs, norms, colors = self.rip_header.get_flat_verts()
-        self.mesh_obj = bpy.data.objects.new(self.name, bpy.data.meshes.new(self.name+"_mesh"))
-        bpy.context.scene.objects.link(self.mesh_obj)
-        self.mesh = self.mesh_obj.data
-        self.mesh.from_pydata(verts, [], self.rip_header.indexes)
-        self.mesh.uv_textures.new()
-        uv_data = self.mesh.uv_layers[0].data
-        for i in range(len(uv_data)):
-            u = uvs[self.mesh.loops[i].vertex_index]
-            uv_data[i].uv = u
+        if verts:
+            self.mesh_obj = bpy.data.objects.new(self.name, bpy.data.meshes.new(self.name+"_mesh"))
+            bpy.context.scene.objects.link(self.mesh_obj)
+            self.mesh = self.mesh_obj.data
+            self.mesh.from_pydata(verts, [], self.rip_header.indexes)
+        if uvs:
+            self.mesh.uv_textures.new()
+            uv_data = self.mesh.uv_layers[0].data
+            for i in range(len(uv_data)):
+                u = uvs[self.mesh.loops[i].vertex_index]
+                uv_data[i].uv = u

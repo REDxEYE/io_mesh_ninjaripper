@@ -41,10 +41,10 @@ class RIPHeader:
         colors = []
         uvs = []
         for vert in self.vertexes:
-            verts.append(vert.pos.as_list)
-            uvs.append(vert.UV.as_list)
-            norms.append(vert.norm.as_list)
-            colors.append(vert.color.as_list)
+            verts.append(vert.pos.as_Vector3D.as_list)
+            uvs.append(vert.UV.as_Vector2D.as_list)
+            norms.append(vert.norm.as_Vector3D.as_list)
+            colors.append(vert.color.as_Vector3D.as_list)
         return verts,uvs,norms,colors
 
     def read(self, reader: ByteIO):
@@ -86,17 +86,17 @@ class RIPHeader:
             for attrib in self.attributes:
                 reader.seek(vertex_entry + attrib.offset)
                 if attrib.name == RIPAttrTypes.POSITION:
-                    vertex.pos.read(reader)
+                    vertex.pos.read(reader,attrib.types)
                 elif attrib.name == RIPAttrTypes.NORMAL:
-                    vertex.norm.read(reader)
+                    vertex.norm.read(reader,attrib.types)
                 elif attrib.name == RIPAttrTypes.TEXCOORD:
-                    vertex.UV.read(reader)
+                    vertex.UV.read(reader,attrib.types)
                 elif attrib.name == RIPAttrTypes.COLOR:
-                    vertex.color.read(reader)
+                    vertex.color.read(reader,attrib.types)
                 elif attrib.name == RIPAttrTypes.TANGENT:
                     reader.skip(attrib.size)
                 elif attrib.name == RIPAttrTypes.BLENDINDICES:
-                    vertex.blend.read(reader)
+                    vertex.blend.read(reader,attrib.types)
                 else:
                     print('Found unknown attribute! Please report about this')
             reader.seek(vertex_entry + self.vertex_size)
@@ -109,7 +109,7 @@ class RIPVector:
 
     def read(self, reader: ByteIO):
         self.x, self.y, self.z = reader.read_fmt('fff')
-
+        return self
     @property
     def as_list(self):
         return [self.x, self.y, self.z]
@@ -126,7 +126,26 @@ class RIPIntVector:
         self.x, self.y, self.z = 0, 0, 0
 
     def read(self, reader: ByteIO):
-        self.x, self.y, self.z = reader.read_fmt('III')
+        self.x, self.y, self.z = reader.read_fmt('iii')
+        return self
+    @property
+    def as_list(self):
+        return [self.x, self.y, self.z]
+
+    def __repr__(self):
+        return "<RIPVector 2D X:{0.x} Y:{0.y} Z:{0.z}>".format(self)
+
+    @property
+    def as_string(self):
+        return "X:{0.x} Y:{0.y} Z:{0.z}>".format(self)
+
+class RIPUIntVector:
+    def __init__(self):
+        self.x, self.y, self.z = 0, 0, 0
+
+    def read(self, reader: ByteIO):
+        self.x, self.y, self.z = reader.read_fmt('iii')
+        return self
 
     @property
     def as_list(self):
@@ -145,8 +164,9 @@ class RIPVector2D:
         self.x, self.y = 0, 0
 
     def read(self, reader: ByteIO):
-        self.x,self.y,_,_ = reader.read_fmt('ffff')
 
+        self.x,self.y,_,_ = reader.read_fmt('ffff')
+        return self
     @property
     def as_list(self):
         return [self.x, self.y]
@@ -157,15 +177,44 @@ class RIPVector2D:
     @property
     def as_string(self):
         return "X:{0.x} Y:{0.y}>".format(self)
+tt ={0:'f',1:'L',2:'l'}
+class RIPVarVector:
+    def __init__(self):
+        self.values = []
 
+    def read(self,reader:ByteIO,types):
+        fmt = ''.join([tt.get(f, "L") for f in types])
+        self.values = list(reader.read_fmt(fmt))
+
+    @property
+    def as_Vector3D(self):
+        vec = RIPVector()
+        self.values.extend([0] * 3)
+        vec.x,vec.y,vec.z = self.values[:3]
+        return vec
+    @property
+    def as_IntVector3D(self):
+        vec = RIPIntVector()
+        self.values.extend([0] * 3)
+        vec.x,vec.y,vec.z = self.values[:3]
+        return vec
+    @property
+    def as_Vector2D(self):
+        vec = RIPVector2D()
+        self.values.extend([0] * 3)
+        vec.x,vec.y = self.values[:2]
+        return vec
+
+    def __repr__(self):
+        return "RIPVarVector values:{0.values}".format(self)
 
 class RIPVertex:
     def __init__(self):
-        self.pos = RIPVector()
-        self.norm = RIPVector()
-        self.UV = RIPVector2D()
-        self.color = RIPVector()
-        self.blend = RIPIntVector()
+        self.pos = RIPVarVector()
+        self.norm = RIPVarVector()
+        self.UV = RIPVarVector()
+        self.color = RIPVarVector()
+        self.blend = RIPVarVector()
 
     def __repr__(self):
         return "<RIPVertex 2D X:{0.x} Y:{0.y}>".format(self.pos)
@@ -182,12 +231,16 @@ class RIPAttribute:
         self.types = []
 
     def read(self, reader: ByteIO):
+        print("Attr entry",reader.tell())
         self.name = reader.read_ascii_string()
+        print(self.name)
         self.index = reader.read_uint32()
         self.offset = reader.read_uint32()
         self.size = reader.read_uint32()
+        print(reader.tell())
         self.type_map_elements = reader.read_uint32()
         self.types = [reader.read_uint32() for _ in range(self.type_map_elements)]
+        print(self)
         return self
 
     def __repr__(self):
