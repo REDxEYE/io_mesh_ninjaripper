@@ -40,9 +40,12 @@ class RIPHeader:
         norms = []
         colors = []
         uvs = []
+        for _ in self.vertexes[0].UV:
+             uvs.append([])
         for vert in self.vertexes:
             verts.append(vert.pos.as_Vector3D.as_list)
-            uvs.append(vert.UV.as_Vector2D.as_list)
+            for n,uv in enumerate(vert.UV):
+                uvs[n].append(uv.as_Vector2D.as_list)
             norms.append(vert.norm.as_Vector3D.as_list)
             colors.append(vert.color.as_Vector3D.as_list)
         return verts,uvs,norms,colors
@@ -90,7 +93,7 @@ class RIPHeader:
                 elif attrib.name == RIPAttrTypes.NORMAL:
                     vertex.norm.read(reader,attrib.types)
                 elif attrib.name == RIPAttrTypes.TEXCOORD:
-                    vertex.UV.read(reader,attrib.types)
+                    vertex.UV.append(RIPVarVector().read(reader,attrib.types))
                 elif attrib.name == RIPAttrTypes.COLOR:
                     vertex.color.read(reader,attrib.types)
                 elif attrib.name == RIPAttrTypes.TANGENT:
@@ -185,6 +188,7 @@ class RIPVarVector:
     def read(self,reader:ByteIO,types):
         fmt = ''.join([tt.get(f, "L") for f in types])
         self.values = list(reader.read_fmt(fmt))
+        return self
 
     @property
     def as_Vector3D(self):
@@ -212,7 +216,7 @@ class RIPVertex:
     def __init__(self):
         self.pos = RIPVarVector()
         self.norm = RIPVarVector()
-        self.UV = RIPVarVector()
+        self.UV = [] #type: List[RIPVarVector]
         self.color = RIPVarVector()
         self.blend = RIPVarVector()
 
@@ -231,16 +235,12 @@ class RIPAttribute:
         self.types = []
 
     def read(self, reader: ByteIO):
-        print("Attr entry",reader.tell())
         self.name = reader.read_ascii_string()
-        print(self.name)
         self.index = reader.read_uint32()
         self.offset = reader.read_uint32()
         self.size = reader.read_uint32()
-        print(reader.tell())
         self.type_map_elements = reader.read_uint32()
         self.types = [reader.read_uint32() for _ in range(self.type_map_elements)]
-        print(self)
         return self
 
     def __repr__(self):

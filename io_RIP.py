@@ -60,8 +60,9 @@ class IO_RIP:
             self.mesh = self.mesh_obj.data
             self.mesh.from_pydata(verts, [], self.rip_header.indexes)
         if uvs:
-            self.mesh.uv_textures.new()
-            uv_data = self.mesh.uv_layers[0].data
-            for i in range(len(uv_data)):
-                u = uvs[self.mesh.loops[i].vertex_index]
-                uv_data[i].uv = u
+            for uv in uvs:
+                self.mesh.uv_textures.new()
+                uv_data = self.mesh.uv_layers[0].data
+                for i in range(len(uv_data)):
+                    u = uv[self.mesh.loops[i].vertex_index]
+                    uv_data[i].uv = u
