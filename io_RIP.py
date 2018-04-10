@@ -11,7 +11,9 @@ except:
     from RIP import RIP
 
 class IO_RIP:
-    def __init__(self, path: str = None, import_textures:bool=False):
+    def __init__(self, path: str = None, import_textures:bool=False,uv_scale = 1,vertex_scale = 1):
+        self.uv_scale = uv_scale
+        self.vertex_scale = vertex_scale
         self.rip = RIP(filepath=path)
         self.rip.read()
         self.rip_header = self.rip.header
@@ -53,7 +55,7 @@ class IO_RIP:
         return mat_ind
 
     def create_mesh(self):
-        verts, uvs, norms, colors = self.rip_header.get_flat_verts()
+        verts, uvs, norms, colors = self.rip_header.get_flat_verts(self.uv_scale,self.vertex_scale)
         if verts:
             self.mesh_obj = bpy.data.objects.new(self.name, bpy.data.meshes.new(self.name+"_mesh"))
             bpy.context.scene.objects.link(self.mesh_obj)

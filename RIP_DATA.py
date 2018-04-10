@@ -35,20 +35,7 @@ class RIPHeader:
         self.vertexes = [] # type: List[RIPVertex]
 
 
-    def get_flat_verts(self):
-        verts = []
-        norms = []
-        colors = []
-        uvs = []
-        for _ in self.vertexes[0].UV:
-             uvs.append([])
-        for vert in self.vertexes:
-            verts.append(vert.pos.as_Vector3D.as_list)
-            for n,uv in enumerate(vert.UV):
-                uvs[n].append(uv.as_Vector2D.as_list)
-            norms.append(vert.norm.as_Vector3D.as_list)
-            colors.append(vert.color.as_Vector3D.as_list)
-        return verts,uvs,norms,colors
+
 
     def read(self, reader: ByteIO):
         self.magic = reader.read_uint32()
@@ -70,7 +57,7 @@ class RIPHeader:
         for _ in range(self.attrib_count):
             attr = RIPAttribute()
             self.attributes.append(attr.read(reader))
-            print("Found",attr.name,'attribute')
+            print("\tFound",attr.name,'attribute')
 
     def read_textures(self, reader: ByteIO):
         self.textures = [reader.read_ascii_string() for _ in range(self.texture_count)]
@@ -105,6 +92,20 @@ class RIPHeader:
             reader.seek(vertex_entry + self.vertex_size)
             self.vertexes.append(vertex)
 
+    def get_flat_verts(self,uv_scale=1,vertex_scale=1):
+        verts = []
+        norms = []
+        colors = []
+        uvs = []
+        for _ in self.vertexes[0].UV:
+            uvs.append([])
+        for vert in self.vertexes:
+            verts.append(list([v *uv_scale for v in vert.pos.as_Vector3D.as_list]))
+            for n, uv in enumerate(vert.UV):
+                uvs[n].append(list([v *uv_scale for v in uv.as_Vector2D.as_list]))
+            norms.append(vert.norm.as_Vector3D.as_list)
+            colors.append(vert.color.as_Vector3D.as_list)
+        return verts, uvs, norms, colors
 
 class RIPVector:
     def __init__(self):

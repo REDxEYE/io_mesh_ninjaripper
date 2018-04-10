@@ -1,3 +1,4 @@
+import os
 import sys
 from pprint import pprint
 
@@ -12,6 +13,7 @@ class RIP:
 
     def __init__(self,filepath):
         self.reader = ByteIO(path = filepath)
+        print("Impotring",os.path.basename(filepath))
         self.header = RIPHeader()
 
     def read(self):
@@ -20,7 +22,7 @@ class RIP:
 if __name__ == '__main__':
     with open('log.log', "w") as f:  # replace filepath & filename
         with f as sys.stdout:
-            a = RIP(filepath=r"./test_data/Mesh_0875.rip")
+            a = RIP(filepath=r"./test_data/Mesh_0028.rip")
             # a = RIP(filepath=r"./test_data/Mesh_0113.rip")
             a.read()
             _,uv,_,_ = a.header.get_flat_verts()
