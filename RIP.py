@@ -22,11 +22,13 @@ class RIP:
 if __name__ == '__main__':
     with open('log.log', "w") as f:  # replace filepath & filename
         with f as sys.stdout:
-            a = RIP(filepath=r"./test_data/Mesh_0028.rip")
+            a = RIP(filepath=r"./test_data/MW2/Mesh_0234.rip")
             # a = RIP(filepath=r"./test_data/Mesh_0113.rip")
             a.read()
-            _,uv,_,_ = a.header.get_flat_verts()
-            for vert in uv:
-                pprint(vert)
+            _,uv,norm,_ = a.header.get_flat_verts()
+            # for vert in uv:
+            #     pprint(vert)
+            # for vert in norm:
+            #     pprint(vert)
             # pprint(a.header.vertexes)
 

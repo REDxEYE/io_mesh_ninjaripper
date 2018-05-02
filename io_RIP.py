@@ -76,3 +76,14 @@ class IO_RIP:
                 for i in range(len(uv_data)):
                     u = uv[self.mesh.loops[i].vertex_index]
                     uv_data[i].uv = u
+        if norms:
+            normals = []
+            for inds in self.rip_header.indexes:
+                for v in inds:
+                    normals.append(norms[v])
+            bpy.ops.object.shade_smooth()
+            bpy.ops.object.mode_set(mode='EDIT')
+            bpy.ops.mesh.normals_make_consistent(inside=False)
+            bpy.ops.object.mode_set(mode='OBJECT')
+            self.mesh.normals_split_custom_set(normals)
+            self.mesh.use_auto_smooth = True

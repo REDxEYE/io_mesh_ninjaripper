@@ -64,6 +64,10 @@ class RIPHeader:
 
     def read_shaders(self, reader: ByteIO):
         self.shaders = [reader.read_ascii_string() for _ in range(self.shader_count)]
+        if self.shaders:
+            print('Shaders:')
+            for s in self.shaders:
+                print('\t shader:',s)
 
     def read_indexes(self, reader: ByteIO):
         self.indexes = [(reader.read_uint32(), reader.read_uint32(), reader.read_uint32()) for _ in
@@ -105,6 +109,13 @@ class RIPHeader:
                 uvs[n].append(list([v *uv_scale for v in uv.as_Vector2D.as_list]))
             norms.append(vert.norm.as_Vector3D.as_list)
             colors.append(vert.color.as_Vector3D.as_list)
+        if type(norms[0][0]) == int:
+            # t_norm = []
+            # for n in norms:
+            #     t_norm.append((n[0]/256,n[1]/256,n[2]/256))
+            # norms = t_norm
+            print('Int normals not supported yet')
+            norms = None
         return verts, uvs, norms, colors
 
 class RIPVector:
@@ -148,7 +159,7 @@ class RIPUIntVector:
         self.x, self.y, self.z = 0, 0, 0
 
     def read(self, reader: ByteIO):
-        self.x, self.y, self.z = reader.read_fmt('iii')
+        self.x, self.y, self.z = reader.read_fmt('III')
         return self
 
     @property
