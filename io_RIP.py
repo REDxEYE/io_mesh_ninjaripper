@@ -11,9 +11,10 @@ except:
     from RIP import RIP
 
 class IO_RIP:
-    def __init__(self, path: str = None, import_textures:bool=False,uv_scale = 1,vertex_scale = 1):
+    def __init__(self, path: str = None, import_textures:bool=False,uv_scale = 1,vertex_scale = 1,auto_center = True):
         self.uv_scale = uv_scale
         self.vertex_scale = vertex_scale
+        self.auto_center = auto_center
         self.rip = RIP(filepath=path)
         self.rip.read()
         self.rip_header = self.rip.header
@@ -61,6 +62,13 @@ class IO_RIP:
             bpy.context.scene.objects.link(self.mesh_obj)
             self.mesh = self.mesh_obj.data
             self.mesh.from_pydata(verts, [], self.rip_header.indexes)
+            if self.auto_center:
+                bpy.ops.object.select_all(action="DESELECT")
+                self.mesh_obj.select = True
+                bpy.context.scene.objects.active = self.mesh_obj
+                bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY')
+                bpy.ops.object.location_clear(clear_delta=False)
+
         if uvs:
             for uv in uvs:
                 self.mesh.uv_textures.new()
