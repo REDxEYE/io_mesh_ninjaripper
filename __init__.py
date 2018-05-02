@@ -38,11 +38,11 @@ class RIPImporter(bpy.types.Operator):
     )
     uv_scale = bpy.props.FloatProperty(name = 'UV scale',default = 1.0)
     vertex_scale = bpy.props.FloatProperty(name = 'Vertex scale',default = 1.0)
-
+    auto_center = bpy.props.BoolProperty(name='Auto center model?', default=True)
 
     def execute(self, context):
         from . import io_RIP
-        io_RIP.IO_RIP(self.filepath,uv_scale = self.uv_scale,vertex_scale = self.vertex_scale)
+        io_RIP.IO_RIP(self.filepath,uv_scale = self.uv_scale,vertex_scale = self.vertex_scale,auto_center=self.auto_center)
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -68,7 +68,7 @@ class RIPImporterBatch(bpy.types.Operator):
         from . import io_RIP
         for file in os.listdir(os.path.dirname(self.filepath)):
             if file.endswith('.rip'):
-                io_RIP.IO_RIP(os.path.join(os.path.dirname(self.filepath),file),uv_scale = self.uv_scale,vertex_scale = self.vertex_scale,auto_center=auto_center)
+                io_RIP.IO_RIP(os.path.join(os.path.dirname(self.filepath),file),uv_scale = self.uv_scale,vertex_scale = self.vertex_scale,auto_center=self.auto_center)
         return {'FINISHED'}
 
     def invoke(self, context, event):
