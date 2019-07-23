@@ -1,25 +1,31 @@
-import random,os.path
+import random, os.path
 
 import bpy
+
 try:
-    from .ByteIO import ByteIO
+    from .ByteIO_nr import ByteIO
     from .RIP_DATA import *
     from .RIP import RIP
 except:
-    from ByteIO import ByteIO
+    from ByteIO_nr import ByteIO
     from RIP_DATA import *
     from RIP import RIP
 
+
 class IO_RIP:
-    def __init__(self, path: str = None, import_textures:bool=False,uv_scale = 1,vertex_scale = 1,auto_center = True):
+    def __init__(self, path: str = None, import_textures: bool = False, uv_scale=1, vertex_scale=1, auto_center=True,invert_uv=False):
         self.uv_scale = uv_scale
+        self.invert_uv = invert_uv
         self.vertex_scale = vertex_scale
         self.auto_center = auto_center
+        self.mesh_obj = None
+        self.mesh = None
         self.rip = RIP(filepath=path)
         self.rip.read()
         self.rip_header = self.rip.header
         self.name = os.path.basename(path)
         self.create_mesh()
+
     @staticmethod
     def get_material(mat_name, model_ob):
         if mat_name:
@@ -56,9 +62,10 @@ class IO_RIP:
         return mat_ind
 
     def create_mesh(self):
-        verts, uvs, norms, colors = self.rip_header.get_flat_verts(self.uv_scale,self.vertex_scale)
+        verts, uvs, norms, colors, blend_ind, blend_weight = self.rip_header.get_flat_verts(self.uv_scale,
+                                                                                            self.vertex_scale)
         if verts:
-            self.mesh_obj = bpy.data.objects.new(self.name, bpy.data.meshes.new(self.name+"_mesh"))
+            self.mesh_obj = bpy.data.objects.new(self.name, bpy.data.meshes.new(self.name + "_mesh"))
             bpy.context.scene.objects.link(self.mesh_obj)
             self.mesh = self.mesh_obj.data
             self.mesh.from_pydata(verts, [], self.rip_header.indexes)
@@ -69,21 +76,45 @@ class IO_RIP:
                 bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY')
                 bpy.ops.object.location_clear(clear_delta=False)
 
-        if uvs:
-            for uv in uvs:
-                self.mesh.uv_textures.new()
-                uv_data = self.mesh.uv_layers[0].data
-                for i in range(len(uv_data)):
-                    u = uv[self.mesh.loops[i].vertex_index]
-                    uv_data[i].uv = u
-        if norms:
-            normals = []
-            for inds in self.rip_header.indexes:
-                for v in inds:
-                    normals.append(norms[v])
-            bpy.ops.object.shade_smooth()
-            bpy.ops.object.mode_set(mode='EDIT')
-            bpy.ops.mesh.normals_make_consistent(inside=False)
-            bpy.ops.object.mode_set(mode='OBJECT')
-            self.mesh.normals_split_custom_set(normals)
-            self.mesh.use_auto_smooth = True
+            if uvs:
+                for uv in uvs:
+                    self.mesh.uv_textures.new()
+                    uv_data = self.mesh.uv_layers[0].data
+                    for i in range(len(uv_data)):
+                        u = uv[self.mesh.loops[i].vertex_index]
+                        if self.invert_uv:
+                            u = [u[0],1-u[1]]
+                        uv_data[i].uv = u
+
+            bpy.ops.object.select_all(action="DESELECT")
+            self.mesh_obj.select = True
+            bpy.context.scene.objects.active = self.mesh_obj
+
+            if norms:
+                normals = []
+                for inds in self.rip_header.indexes:
+                    for v in inds:
+                        normals.append(norms[v])
+                bpy.ops.object.shade_smooth()
+                bpy.ops.object.mode_set(mode='EDIT')
+                bpy.ops.mesh.normals_make_consistent(inside=False)
+                bpy.ops.object.mode_set(mode='OBJECT')
+                self.mesh.normals_split_custom_set(normals)
+                self.mesh.use_auto_smooth = True
+
+            if blend_ind:
+                # print(indices)
+                weight_groups = {}
+                temp = []
+                for b in blend_ind:
+                 temp.extend(b)
+                temp = set(temp)
+                for bone in temp:
+                        weight_groups[str(bone)] = self.mesh_obj.vertex_groups.new(str(bone))
+                if blend_weight:
+                    for n, (bones, weights) in enumerate(zip(blend_ind, blend_weight)):
+                        for bone, weight in zip(bones, weights):
+                            if weight != 0:
+                                # if bone in mesh_data['bone_map']:
+                                bone_name = str(bone)  # ['name']
+                                weight_groups[bone_name].add([n], weight, 'REPLACE')

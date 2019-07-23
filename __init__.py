@@ -1,4 +1,7 @@
 # import RIP_Utilities
+from pathlib import Path
+
+from .ByteIO_nr import ByteIO
 
 bl_info = {
     "name": "NinjaRipper rip importer",
@@ -7,7 +10,7 @@ bl_info = {
     "blender": (2, 78, 0),
     "location": "File > Import-Export > NinjaRipper RIP (.rip) ",
     "description": "Addon allows to import NinjaRippper meshes",
-    #'warning': 'May crash blender',
+    # 'warning': 'May crash blender',
     # "wiki_url": "http://www.barneyparker.com/blender-json-import-export-plugin",
     # "tracker_url": "http://www.barneyparker.com/blender-json-import-export-plugin",
     "category": "Import-Export"}
@@ -23,9 +26,10 @@ if "bpy" in locals():
 else:
     import bpy
 
-from bpy.props import StringProperty, BoolProperty
+from bpy.props import StringProperty, BoolProperty, CollectionProperty
 from bpy_extras.io_utils import ExportHelper
 import os
+
 
 class RIPImporter(bpy.types.Operator):
     """Load Source Engine MDL models"""
@@ -36,19 +40,26 @@ class RIPImporter(bpy.types.Operator):
     filepath = StringProperty(
         subtype='FILE_PATH',
     )
-    uv_scale = bpy.props.FloatProperty(name = 'UV scale',default = 1.0)
-    vertex_scale = bpy.props.FloatProperty(name = 'Vertex scale',default = 1.0)
+    files = CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
+
+    uv_scale = bpy.props.FloatProperty(name='UV scale', default=1.0)
+    invert_uv = bpy.props.BoolProperty(name='Invert UV', default=False)
+    vertex_scale = bpy.props.FloatProperty(name='Vertex scale', default=1.0)
     auto_center = bpy.props.BoolProperty(name='Auto center model?', default=True)
 
     def execute(self, context):
         from . import io_RIP
-        io_RIP.IO_RIP(self.filepath,uv_scale = self.uv_scale,vertex_scale = self.vertex_scale,auto_center=self.auto_center)
+        directory = Path(self.filepath).parent.absolute()
+        for file in self.files:
+            io_RIP.IO_RIP(str(directory / file.name), uv_scale=self.uv_scale, vertex_scale=self.vertex_scale,
+                          auto_center=self.auto_center, invert_uv=self.invert_uv)
         return {'FINISHED'}
 
     def invoke(self, context, event):
         wm = context.window_manager
         wm.fileselect_add(self)
         return {'RUNNING_MODAL'}
+
 
 class RIPImporterBatch(bpy.types.Operator):
     """Load RIP models"""
@@ -59,23 +70,32 @@ class RIPImporterBatch(bpy.types.Operator):
     filepath = StringProperty(
         subtype='FILE_PATH',
     )
-    uv_scale = bpy.props.FloatProperty(name = 'UV scale',default = 1.0)
-    vertex_scale = bpy.props.FloatProperty(name = 'Vertex scale',default = 1.0)
-    auto_center = bpy.props.BoolProperty(name = 'Auto center model?',default = True)
-
+    uv_scale = bpy.props.FloatProperty(name='UV scale', default=1.0)
+    invert_uv = bpy.props.BoolProperty(name='Invert UV', default=False)
+    vertex_scale = bpy.props.FloatProperty(name='Vertex scale', default=1.0)
+    auto_center = bpy.props.BoolProperty(name='Auto center model?', default=True)
 
     def execute(self, context):
         from . import io_RIP
+        files = []
+        sizes = {}
+        directory = Path(self.filepath).parent.absolute()
         for file in os.listdir(os.path.dirname(self.filepath)):
             if file.endswith('.rip'):
-                io_RIP.IO_RIP(os.path.join(os.path.dirname(self.filepath),file),uv_scale = self.uv_scale,vertex_scale = self.vertex_scale,auto_center=self.auto_center)
+                files.append(file)
+        for file in files:
+            a = ByteIO(path=str(directory / file))
+            if a.size() not in sizes:
+                sizes[a.size()] = file
+        for file in sizes.values():
+            io_RIP.IO_RIP(str(directory / file), uv_scale=self.uv_scale,
+                          vertex_scale=self.vertex_scale, auto_center=self.auto_center,invert_uv=self.invert_uv)
         return {'FINISHED'}
 
     def invoke(self, context, event):
         wm = context.window_manager
         wm.fileselect_add(self)
         return {'RUNNING_MODAL'}
-
 
 
 def menu_import(self, context):

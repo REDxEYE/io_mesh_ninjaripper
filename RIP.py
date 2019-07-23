@@ -3,10 +3,10 @@ import sys
 from pprint import pprint
 
 try:
-    from .ByteIO import ByteIO
+    from .ByteIO_nr import ByteIO
     from .RIP_DATA import *
 except:
-    from ByteIO import ByteIO
+    from ByteIO_nr import ByteIO
     from RIP_DATA import *
 
 class RIP:
@@ -22,10 +22,11 @@ class RIP:
 if __name__ == '__main__':
     with open('log.log', "w") as f:  # replace filepath & filename
         with f as sys.stdout:
-            a = RIP(filepath=r"./test_data/MW2/Mesh_0234.rip")
+            a = RIP(filepath=r"F:\randon_files\2019.07.22_22.30.52_DivinityEngine2.exe\Mesh_0129.rip")
             # a = RIP(filepath=r"./test_data/Mesh_0113.rip")
             a.read()
-            _,uv,norm,_ = a.header.get_flat_verts()
+            verts, uvs, norms, colors, blend_ind, blend_weight = a.header.get_flat_verts()
+            a = 0
             # for vert in uv:
             #     pprint(vert)
             # for vert in norm:

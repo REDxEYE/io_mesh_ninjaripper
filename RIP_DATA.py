@@ -1,17 +1,19 @@
 from typing import List, Tuple
 
 try:
-    from .ByteIO import ByteIO
+    from .ByteIO_nr import ByteIO
 except:
-    from ByteIO import ByteIO
+    from ByteIO_nr import ByteIO
 
 
 class RIPAttrTypes:
     POSITION = "POSITION"
     NORMAL = "NORMAL"
+    BINORMAL = "BINORMAL"
     TEXCOORD = "TEXCOORD"
     COLOR = "COLOR"
     BLENDINDICES = "BLENDINDICES"
+    BLENDWEIGHT = "BLENDWEIGHT"
     TANGENT = "TANGENT"
 
 
@@ -58,9 +60,14 @@ class RIPHeader:
             attr = RIPAttribute()
             self.attributes.append(attr.read(reader))
             print("\tFound",attr.name,'attribute')
+            print(attr)
 
     def read_textures(self, reader: ByteIO):
         self.textures = [reader.read_ascii_string() for _ in range(self.texture_count)]
+        if self.shaders:
+            print('Textures:')
+            for s in self.shaders:
+                print('\t texture:',s)
 
     def read_shaders(self, reader: ByteIO):
         self.shaders = [reader.read_ascii_string() for _ in range(self.shader_count)]
@@ -83,6 +90,8 @@ class RIPHeader:
                     vertex.pos.read(reader,attrib.types)
                 elif attrib.name == RIPAttrTypes.NORMAL:
                     vertex.norm.read(reader,attrib.types)
+                elif attrib.name == RIPAttrTypes.BINORMAL:
+                    vertex.binorm.read(reader,attrib.types)
                 elif attrib.name == RIPAttrTypes.TEXCOORD:
                     vertex.UV.append(RIPVarVector().read(reader,attrib.types))
                 elif attrib.name == RIPAttrTypes.COLOR:
@@ -91,8 +100,10 @@ class RIPHeader:
                     reader.skip(attrib.size)
                 elif attrib.name == RIPAttrTypes.BLENDINDICES:
                     vertex.blend.read(reader,attrib.types)
+                elif attrib.name == RIPAttrTypes.BLENDWEIGHT:
+                    vertex.blendweight.read(reader,attrib.types)
                 else:
-                    print('Found unknown attribute! Please report about this')
+                    print('Found "{}" unknown attribute! Please report about this'.format(attrib.name))
             reader.seek(vertex_entry + self.vertex_size)
             self.vertexes.append(vertex)
 
@@ -101,6 +112,8 @@ class RIPHeader:
         norms = []
         colors = []
         uvs = []
+        blend_ind = []
+        blend_weight = []
         for _ in self.vertexes[0].UV:
             uvs.append([])
         for vert in self.vertexes:
@@ -109,6 +122,8 @@ class RIPHeader:
                 uvs[n].append(list([v *uv_scale for v in uv.as_Vector2D.as_list]))
             norms.append(vert.norm.as_Vector3D.as_list)
             colors.append(vert.color.as_Vector3D.as_list)
+            blend_ind.append(vert.blend.as_Vector3D.as_list)
+            blend_weight.append(vert.blendweight.as_Vector3D.as_list)
         if type(norms[0][0]) == int:
             # t_norm = []
             # for n in norms:
@@ -116,7 +131,7 @@ class RIPHeader:
             # norms = t_norm
             print('Int normals not supported yet')
             norms = None
-        return verts, uvs, norms, colors
+        return verts, uvs, norms, colors,blend_ind,blend_weight
 
 class RIPVector:
     def __init__(self):
@@ -228,6 +243,8 @@ class RIPVertex:
     def __init__(self):
         self.pos = RIPVarVector()
         self.norm = RIPVarVector()
+        self.binorm = RIPVarVector()
+        self.blendweight = RIPVarVector()
         self.UV = [] #type: List[RIPVarVector]
         self.color = RIPVarVector()
         self.blend = RIPVarVector()
@@ -247,7 +264,7 @@ class RIPAttribute:
         self.types = []
 
     def read(self, reader: ByteIO):
-        self.name = reader.read_ascii_string()
+        self.name = reader.read_ascii_string().upper()
         self.index = reader.read_uint32()
         self.offset = reader.read_uint32()
         self.size = reader.read_uint32()
